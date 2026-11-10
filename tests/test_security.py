@@ -124,3 +124,17 @@ def test_isolated_worker_accepts_valid_bounded_result(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, 'run', fake_run)
     count, pages = run_isolated_pdf(pdf, max_pages=10, max_bytes=20 * 1024 * 1024)
     assert count == 1 and pages[0]['text'] == 'hello'
+
+
+def test_model_downloads_are_not_blocked_by_parser_file_size_limit(monkeypatch):
+    import os
+    import resource
+    import docurisk.pdf_worker as pdf_worker
+    if os.name != 'posix':
+        pytest.skip('Linux resource limits only')
+    limits = []
+    monkeypatch.setattr(resource, 'getrlimit', lambda kind: (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+    monkeypatch.setattr(resource, 'setrlimit', lambda kind, limit: limits.append(kind))
+    pdf_worker._apply_limits()
+    # Model assets are larger than 30MB; cap only the serialized output file.
+    assert resource.RLIMIT_FSIZE not in limits

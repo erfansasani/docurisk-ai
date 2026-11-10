@@ -6,6 +6,7 @@
 - **Unbounded parsing:** Production-path conversion runs in a child process with wall timeout and Linux CPU/file-size limits. Timeouts terminate the child, return safe error codes and avoid exposing raw exception messages.
 - **Docker attack surface:** `.dockerignore` excludes secrets/data; non-root container, localhost bind, read-only root, tmpfs, dropped capabilities, no-new-privileges and bounded memory/PIDs/CPU.
 - **SQLite file descriptor leakage:** Connections are now explicitly closed in a transaction-aware context manager, with a regression test.
+- **Docling cold-start issue:** A low per-process file-size limit also capped initial model downloads; the child now limits only CPU and bounds serialized JSON results separately. The real integration job must test child-first conversion without priming the model cache.
 - **Mock-only coverage:** Dedicated GitHub Actions jobs for actual Docling extraction and Docker build/import, separate from fast unit tests.
 
 ## Residual risks: not production-ready

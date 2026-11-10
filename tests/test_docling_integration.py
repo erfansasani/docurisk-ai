@@ -19,11 +19,11 @@ def test_real_pdf_conversion_with_docling(tmp_path):
     canvas.save()
     pdf_file = tmp_path / 'sample.pdf'
     pdf_file.write_bytes(buffer.getvalue())
-    # Direct path first: if Docling itself fails, CI reports the real traceback.
+    # Cold-start path: the child must be able to fetch model assets on its first run.
+    count, pages = run_isolated_pdf(pdf_file, max_pages=10, max_bytes=20 * 1024 * 1024)
+    # Direct Docling call verifies parity after the subprocess conversion.
     direct_pages = parse_pdf(pdf_file, max_pages=10, max_bytes=20 * 1024 * 1024)
     assert len(direct_pages) == 1
-    # Then verify the security boundary that invokes the same parser in a subprocess.
-    count, pages = run_isolated_pdf(pdf_file, max_pages=10, max_bytes=20 * 1024 * 1024)
     assert count == 1
     assert len(pages) == 1
     assert pages[0]['page_number'] == 1

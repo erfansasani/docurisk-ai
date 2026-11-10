@@ -56,10 +56,9 @@ def _apply_limits() -> None:
         return
     import resource
     max_cpu = 120
-    for kind, desired in [
-        (resource.RLIMIT_CPU, max_cpu),
-        (resource.RLIMIT_FSIZE, 30 * 1024 * 1024),
-    ]:
+    # RLIMIT_FSIZE would also cap initial model downloads, breaking cold starts.
+    # Limit only CPU; bound the serialized result separately.
+    for kind, desired in [(resource.RLIMIT_CPU, max_cpu)]:
         soft, hard = resource.getrlimit(kind)
         bounded = min(desired, hard) if hard != resource.RLIM_INFINITY else desired
         resource.setrlimit(kind, (bounded, hard))
@@ -81,7 +80,11 @@ def main() -> int:
     except Exception:
         # Never serialize arbitrary exception messages or PDF content into logs.
         payload = {'error_code': 'parse_failed'}
-    Path(output_path).write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+    serialized = json.dumps(payload, ensure_ascii=False)
+    # Limit the result, not arbitrary model artifacts written by Docling.
+    if len(serialized.encode('utf-8')) > 30 * 1024 * 1024:
+        serialized = json.dumps({'error_code': 'result_limit'})
+    Path(output_path).write_text(serialized, encoding='utf-8')
     return 0
 
 

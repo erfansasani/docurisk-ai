@@ -7,7 +7,7 @@ The **E2E check** covers the complete public API journey from an external HTTP c
 - Unit tests use a stubbed parser for speed and deterministic error checks.
 - The Docling integration test processes a PDF but does not exercise a live HTTP server.
 - The Docker smoke test checks that an image builds and imports.
-- **This E2E test** sends actual HTTP requests to Docker, uploads a synthetic two-page PDF, polls for completion, checks both page texts and SHA-256, then verifies deletion. It also tests authentication, invalid uploads and a corrupt PDF's safe error response.
+- **This E2E test** sends actual HTTP requests to Docker, uploads a synthetic two-page PDF, polls for completion, checks both page texts and SHA-256, then verifies deletion. It also tests authentication, invalid uploads, the 20 MiB size boundary and a corrupt PDF's safe error response.
 
 ## Automated CI
 
@@ -34,7 +34,7 @@ docker compose -p docurisk-e2e down -v --remove-orphans
 
 ## Expected results and troubleshooting
 
-- **Success:** 3 E2E scenarios succeed, including a real two-page document lifecycle and safe handling of corrupted input.
+- **Success:** 4 E2E scenarios succeed, including a real two-page document lifecycle and safe handling of corrupted input.
 - **API does not start:** check Docker startup, volume permissions and health endpoint.
 - **Job stays queued/running:** FastAPI background tasks are not a durable queue; inspect the test container and failure states.
 - **Docling fails:** check model downloads, available memory, native dependencies and subprocess timeout.

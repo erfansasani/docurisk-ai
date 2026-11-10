@@ -159,3 +159,14 @@ def test_malformed_pdf_reports_safe_background_failure(live_api):
     assert metadata["error_code"] in {"invalid_pdf", "parse_failed"}
     assert "not a real document" not in str(metadata)
     assert client.delete(f"/api/v1/documents/{doc_id}", headers=headers).status_code == 204
+
+
+def test_oversize_pdf_is_rejected_before_processing(live_api):
+    client, headers = live_api
+    # A real HTTP upload just over 20 MiB checks the size boundary.
+    oversize = b"%PDF-" + (b"x" * (20 * 1024 * 1024))
+    response = client.post(
+        "/api/v1/documents", headers=headers,
+        files={"file": ("too-large.pdf", oversize, "application/pdf")},
+    )
+    assert response.status_code == 413

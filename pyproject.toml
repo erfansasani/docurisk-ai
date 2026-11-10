@@ -24,3 +24,5 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["docling_integration: real Docling PDF conversion (requires models)"]
+addopts = "-m 'not docling_integration'"

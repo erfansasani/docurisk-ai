@@ -56,7 +56,6 @@ def test_rejects_unauthorized(client):
 @pytest.mark.parametrize("filename,data,mime,expected", [
     ("wrong.txt", b"hello", "text/plain", 415),
     ("malformed.pdf", b"not-a-pdf", "application/pdf", 415),
-    ("empty.pdf", b"%PDF-1.7", "application/pdf", 422),
 ])
 def test_rejects_invalid_files(client, filename, data, mime, expected):
     response = client.post("/api/v1/documents", headers=headers(), files={"file": (filename, data, mime)})
@@ -73,3 +72,40 @@ def test_parser_failure_is_visible(tmp_path):
         assert meta["status"] == "failed"
         assert meta["error_code"] == "parse_failed"
         assert "sensitive" not in str(meta)
+
+
+def test_malformed_pdf_valid_signature_fails_as_background_job(client):
+    # Expensive PDF inspection must not run in the async upload endpoint.
+    response = client.post(
+        '/api/v1/documents', headers=headers(),
+        files={'file': ('malformed.pdf', b'%PDF-1.7\\nnot a valid pdf', 'application/pdf')},
+    )
+    assert response.status_code == 202
+    doc_id = response.json()['document_id']
+    metadata = client.get(f'/api/v1/documents/{doc_id}', headers=headers()).json()
+    assert metadata['status'] == 'failed'
+    assert metadata['error_code'] in ('invalid_pdf', 'parse_failed')
+
+
+def test_valid_pdf_is_never_parsed_in_upload_event_loop(tmp_path, monkeypatch):
+    # Heavy PDF inspection is deferred to the worker thread.
+    import docurisk.pdf_worker as pdf_worker
+    calls = []
+    original = pdf_worker.PdfReader
+    def probe(*args, **kwargs):
+        import asyncio
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            calls.append('worker')
+        else:
+            calls.append('event_loop')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(pdf_worker, 'PdfReader', probe)
+    with TestClient(create_app(data_dir=tmp_path, api_key='test-key', parser=lambda *a, **kw: [
+        {'page_number': 1, 'text': 'test', 'markdown': 'test'}
+    ])) as client:
+        response = client.post('/api/v1/documents', headers=headers(),
+            files={'file': ('a.pdf', valid_pdf(), 'application/pdf')})
+        assert response.status_code == 202
+    assert 'event_loop' not in calls

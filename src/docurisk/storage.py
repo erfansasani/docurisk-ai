@@ -1,5 +1,6 @@
 """Small SQLite metadata store for the single-instance alpha. No users/tenants yet."""
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -31,11 +32,16 @@ class Store:
                 );
             """)
 
+    @contextmanager
     def connect(self):
         conn = sqlite3.connect(self.db, timeout=20)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     def add(self, record: dict) -> None:
         with self.connect() as conn:
@@ -56,13 +62,13 @@ class Store:
             ).fetchone()
             return dict(row) if row else None
 
-    def complete(self, doc_id: str, pages: list[dict]) -> None:
+    def complete(self, doc_id: str, pages: list[dict], page_count: int) -> None:
         with self.connect() as conn:
             conn.executemany(
                 "INSERT INTO pages (document_id, page_number, text, markdown) VALUES (?, ?, ?, ?)",
                 [(doc_id, p["page_number"], p["text"], p["markdown"]) for p in pages],
             )
-            conn.execute("UPDATE documents SET status = 'completed' WHERE id = ?", (doc_id,))
+            conn.execute("UPDATE documents SET status = 'completed', page_count = ? WHERE id = ?", (page_count, doc_id))
 
     def set_status(self, doc_id: str, status: str, error_code: str | None = None) -> None:
         with self.connect() as conn:

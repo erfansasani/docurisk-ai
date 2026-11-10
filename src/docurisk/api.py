@@ -12,9 +12,9 @@ from typing import Callable
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
-from pypdf import PdfReader
 
-from docurisk.parser import parse_pdf
+from docurisk.isolated import ParseFailed, run_isolated_pdf
+from docurisk.pdf_worker import inspect_pdf, DocumentError
 from docurisk.storage import Store
 
 log = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def create_app(
     *,
     data_dir: Path | None = None,
     api_key: str | None = None,
-    parser: Callable[..., list[dict]] = parse_pdf,
+    parser: Callable[..., list[dict]] | None = None,
 ) -> FastAPI:
     root = data_dir or Path(os.getenv("DOCURISK_DATA_DIR", "./data"))
     store = Store(root)
@@ -48,15 +48,23 @@ def create_app(
     def work(doc_id: str, file_path: Path) -> None:
         store.set_status(doc_id, "running")
         try:
-            pages = parser(file_path, max_pages=MAX_PAGES, max_bytes=MAX_UPLOAD_BYTES)
-            if not pages or len(pages) > MAX_PAGES:
-                raise ValueError("Unsupported result")
-            store.complete(doc_id, pages)
-        except (ValueError, ImportError, RuntimeError):
-            log.exception("Document parsing failed for id=%s", doc_id)
-            store.set_status(doc_id, "failed", "parse_failed")
+            if parser is None:
+                count, pages = run_isolated_pdf(
+                    file_path, max_pages=MAX_PAGES, max_bytes=MAX_UPLOAD_BYTES
+                )
+            else:
+                # Dependency injection is for deterministic unit tests only.
+                count = inspect_pdf(file_path, max_pages=MAX_PAGES)
+                pages = parser(file_path, max_pages=MAX_PAGES, max_bytes=MAX_UPLOAD_BYTES)
+            if len(pages) != count:
+                raise ParseFailed()
+            store.complete(doc_id, pages, count)
+        except (ParseFailed, DocumentError) as exc:
+            log.warning("PDF job failed: id=%s code=%s", doc_id, exc.code)
+            store.set_status(doc_id, "failed", exc.code)
         except Exception:
-            log.exception("Unexpected parsing failure for id=%s", doc_id)
+            # Never print arbitrary parser exception text containing contract data.
+            log.error("PDF job failed unexpectedly: id=%s", doc_id)
             store.set_status(doc_id, "failed", "parse_failed")
 
     @app.post("/api/v1/documents", status_code=202, dependencies=[Depends(authorize)])
@@ -81,31 +89,17 @@ def create_app(
             with target.open("rb") as stream:
                 if stream.read(5) != b"%PDF-":
                     raise HTTPException(415, "Invalid PDF signature")
-                stream.seek(0)
-                try:
-                    reader = PdfReader(stream)
-                    if reader.is_encrypted:
-                        raise HTTPException(422, "Encrypted PDFs are unsupported")
-                    total_pages = len(reader.pages)
-                    if total_pages == 0 or total_pages > MAX_PAGES:
-                        raise HTTPException(422, "PDF must contain 1 to 100 pages")
-                    if not any((p.extract_text() or "").strip() for p in reader.pages):
-                        raise HTTPException(422, "Scanned PDFs without selectable text are unsupported")
-                except HTTPException:
-                    raise
-                except Exception:
-                    raise HTTPException(422, "Could not parse PDF metadata") from None
             store.add({
                 "id": doc_id,
                 "filename": Path(file.filename).name,
                 "sha256": digest.hexdigest(),
                 "size_bytes": byte_count,
-                "page_count": total_pages,
+                "page_count": 0,
                 "status": "queued",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
             background_tasks.add_task(work, doc_id, target)
-            return {"document_id": doc_id, "status": "queued", "page_count": total_pages}
+            return {"document_id": doc_id, "status": "queued", "page_count": None}
         except Exception:
             if target.exists():
                 target.unlink()

@@ -9,6 +9,14 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - docurisk_data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128
+    mem_limit: 4g
+    cpus: "2.0"
     restart: unless-stopped
 volumes:
   docurisk_data:

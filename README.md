@@ -6,7 +6,7 @@
 
 - Accepts **born-digital English PDF** uploads (max 20 MB, 1–100 pages). Rejects encrypted, malformed and image-only/scanned PDFs.
 - Saves PDFs in a private local volume and stores document metadata/status plus extracted per-page text and Markdown in SQLite.
-- Runs Docling parsing after a 202 Accepted upload response, in a FastAPI background task.
+- Runs PDF inspection and Docling conversion in a **bounded subprocess** after a 202 Accepted upload response; the background task coordinates it. The subprocess is not yet a production sandbox.
 - Exposes authenticated status, per-page results and deletion endpoints (X-API-Key).
 - Has automated API tests and a mocked Docling adapter test.
 
@@ -47,14 +47,21 @@ python -m pip install -e '.[test]'
 python -m pytest -q
 ~~~
 
-The CI suite stubs the expensive parser. **A real end-to-end Docling conversion and Docker image build must be validated separately** before shipping or claiming a working release.
+The default CI test suite stubs expensive model parsing. A dedicated GitHub Actions job now runs a **real Docling PDF smoke test** and another **builds and imports the Docker image**. Results of these jobs must be reviewed on the PR before claiming validation.
+
+To run real integration checks on a machine with model assets available:
+
+~~~bash
+python -m pip install -e '.[test,docling]'
+python -m pytest -q -o addopts= tests/test_docling_integration.py
+~~~
 
 ## Architecture and constraints
 
-FastAPI -> SQLite metadata -> background Docling parser -> per-page text/Markdown.
+FastAPI -> SQLite metadata -> background coordination -> bounded PDF worker subprocess (pypdf + Docling) -> per-page text/Markdown.
 
 - The initial endpoint uses a single configurable API key, **not multi-tenant auth**. Do not expose it to the internet or upload confidential contracts yet.
-- FastAPI background tasks are **not a durable queue**. A process crash can leave a job in a pending state; the intended replacement is Celery/Redis (see #5).
+- FastAPI background tasks are **not a durable queue**, even though conversion runs in a child process. A process crash can leave a job in a pending state; the intended replacement is Celery/Redis (see #5).
 - Uploaded PDFs and extracted content remain in the Docker named volume until deleted. Never commit real contracts or credentials.
 - OCR is disabled; reading English text-based PDFs is the goal of this alpha.
 - For future Persian support, the data layer will keep raw strings and separate normalized values and language-specific indexing. Current extraction support is English only.
@@ -66,3 +73,7 @@ See [GitHub Issues](https://github.com/erfansasani/docurisk-ai/issues): structur
 ## Limitations
 
 This prototype has not been security audited. It does not determine whether a clause is legally enforceable. There are no measured clause-extraction benchmarks yet; those must come from proper validation on held-out datasets such as CUAD.
+
+## ECC for Codex
+
+This project provides project-local, ECC-inspired Codex workflows in [AGENTS.md](AGENTS.md) and [docs/ECC_SETUP.md](docs/ECC_SETUP.md). They focus on TDD, security review and verification without installing global hooks or changing other repositories. See [security limitations](docs/SECURITY_REVIEW.md).

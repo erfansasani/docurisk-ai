@@ -76,3 +76,51 @@ def test_server_does_not_expose_exception_details(tmp_path):
             headers={'X-API-Key': 'my-secret-key'}).json()
         assert metadata['status'] == 'failed'
         assert 'secret contract content' not in str(metadata)
+
+
+def test_sqlite_connections_are_closed(tmp_path, monkeypatch):
+    import sqlite3
+    import docurisk.storage as storage
+
+    original_connect = sqlite3.connect
+    instances = []
+
+    class TrackedConnection(sqlite3.Connection):
+        closed = False
+        def close(self):
+            self.closed = True
+            return super().close()
+
+    def connect(*args, **kwargs):
+        kwargs['factory'] = TrackedConnection
+        conn = original_connect(*args, **kwargs)
+        instances.append(conn)
+        return conn
+
+    monkeypatch.setattr(storage.sqlite3, 'connect', connect)
+    store = storage.Store(tmp_path)
+    assert store.get('missing-id') is None
+    assert len(instances) >= 2
+    assert all(instance.closed for instance in instances)
+
+
+def test_isolated_worker_accepts_valid_bounded_result(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+    upload_dir = tmp_path / 'uploads'
+    upload_dir.mkdir()
+    pdf = upload_dir / 'file.pdf'
+    pdf.write_bytes(_pdf())
+
+    def fake_run(argv, **kwargs):
+        assert argv[0]
+        assert kwargs['timeout'] > 0
+        assert kwargs['check'] is False
+        from pathlib import Path
+        Path(argv[4]).write_text(json.dumps({'page_count': 1, 'pages': [
+            {'page_number': 1, 'text': 'hello', 'markdown': 'hello'}]}))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(subprocess, 'run', fake_run)
+    count, pages = run_isolated_pdf(pdf, max_pages=10, max_bytes=20 * 1024 * 1024)
+    assert count == 1 and pages[0]['text'] == 'hello'

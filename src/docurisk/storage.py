@@ -1,5 +1,6 @@
 """Small SQLite metadata store for the single-instance alpha. No users/tenants yet."""
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -31,11 +32,16 @@ class Store:
                 );
             """)
 
+    @contextmanager
     def connect(self):
         conn = sqlite3.connect(self.db, timeout=20)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     def add(self, record: dict) -> None:
         with self.connect() as conn:

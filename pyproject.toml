@@ -24,5 +24,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["docling_integration: real Docling PDF conversion (requires models)"]
-addopts = "-m 'not docling_integration'"
+markers = [
+    "docling_integration: real Docling PDF conversion (requires models)",
+    "docker_e2e: full HTTP-to-Docling integration against local Docker Compose",
+]
+addopts = "-m 'not docling_integration and not docker_e2e'"

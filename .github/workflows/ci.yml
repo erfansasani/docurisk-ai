@@ -31,9 +31,30 @@ jobs:
       - run: python -m pytest -q -o addopts='' tests/test_docling_integration.py
   docker-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
       - run: DOCURISK_API_KEY=ci-placeholder docker compose config --quiet
-      - run: docker build --tag docurisk:ci .
-      - run: docker run --rm --entrypoint python docurisk:ci -c 'from docurisk.api import app; print(app.title)'
+      # The Compose project name determines its locally built image tag.
+      - run: docker build --tag docurisk-e2e-api:latest .
+      - run: docker run --rm --entrypoint python docurisk-e2e-api:latest -c 'from docurisk.api import app; print(app.title)'
+      - name: Install HTTP test dependencies on the runner
+        run: python -m pip install -e '.[test]'
+      - name: Generate throwaway API key (not printed or committed)
+        run: echo "DOCURISK_API_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Start real Docker Compose API
+        run: docker compose -p docurisk-e2e up -d --no-build
+      - name: Run real HTTP E2E tests against containerized Docling
+        env:
+          DOCURISK_E2E_BASE_URL: http://127.0.0.1:8000
+        run: python -m pytest -q -o addopts='' tests/test_e2e_docker.py
+      - name: Show container state on failure
+        if: failure()
+        run: docker compose -p docurisk-e2e ps || true
+      - name: Destroy temporary test data and containers
+        if: always()
+        run: docker compose -p docurisk-e2e down -v --remove-orphans

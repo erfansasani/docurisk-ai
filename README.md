@@ -29,7 +29,7 @@ The API is bound to **127.0.0.1:8000** (not a public interface). See the OpenAPI
 curl -X POST http://127.0.0.1:8000/api/v1/documents \
   -H 'X-API-Key: YOUR_SECRET' \
   -F 'file=@agreement.pdf;type=application/pdf'
-# {"document_id":"...","status":"queued","page_count":1}
+# {"document_id":"...","status":"queued","page_count":null}
 
 curl -H 'X-API-Key: YOUR_SECRET' \
   http://127.0.0.1:8000/api/v1/documents/DOCUMENT_ID
@@ -77,3 +77,9 @@ This prototype has not been security audited. It does not determine whether a cl
 ## ECC for Codex
 
 This project provides project-local, ECC-inspired Codex workflows in [AGENTS.md](AGENTS.md) and [docs/ECC_SETUP.md](docs/ECC_SETUP.md). They focus on TDD, security review and verification without installing global hooks or changing other repositories. See [security limitations](docs/SECURITY_REVIEW.md).
+
+## Docker end-to-end HTTP tests
+
+CI now executes **actual HTTP requests against a running Docker Compose API** with real Docling conversion, generated two-page PDFs, SQLite persistence, authentication checks, and deletion. The `docker_e2e` test marker is excluded from the fast unit suite.
+
+See [Docker E2E guide](docs/E2E_TESTING.md) for how to run it locally, its security boundaries and troubleshooting. This is still an alpha integration check, not a production load or security audit.

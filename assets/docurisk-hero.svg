@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">DocuRisk AI</title>
+  <desc id="desc">Minimal blue and white banner showing the local PDF parsing flow from PDF upload to page text and Markdown.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eff6ff"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="400" rx="22" fill="url(#background)"/>
+  <rect x="1" y="1" width="1278" height="398" rx="21" fill="none" stroke="#dbeafe" stroke-width="2"/>
+  <path d="M0 316 C280 278 440 374 715 322 S1080 242 1280 310" fill="none" stroke="#dbeafe" stroke-width="2"/>
+  <circle cx="1174" cy="56" r="90" fill="#dbeafe" opacity=".44"/>
+  <circle cx="1090" cy="365" r="130" fill="#bfdbfe" opacity=".26"/>
+  <rect x="64" y="55" width="180" height="30" rx="15" fill="#dbeafe"/>
+  <text x="79" y="75" fill="#1d4ed8" font-family="Arial,Segoe UI,sans-serif" font-size="13" font-weight="700" letter-spacing="1.1">PDF PARSING · ALPHA</text>
+  <text x="62" y="163" fill="#0f172a" font-family="Arial,Segoe UI,sans-serif" font-size="60" font-weight="700">DocuRisk <tspan fill="#2563eb">AI</tspan></text>
+  <text x="64" y="205" fill="#334155" font-family="Arial,Segoe UI,sans-serif" font-size="21">Evidence-grounded contract intelligence</text>
+  <text x="64" y="236" fill="#334155" font-family="Arial,Segoe UI,sans-serif" font-size="21">for PDF documents</text>
+  <rect x="64" y="286" width="142" height="36" rx="18" fill="url(#blue)"/>
+  <text x="88" y="309" fill="#ffffff" font-family="Arial,Segoe UI,sans-serif" font-size="14" font-weight="700">LOCAL API</text>
+  <text x="225" y="309" fill="#64748b" font-family="Arial,Segoe UI,sans-serif" font-size="14">v0.1.0-alpha</text>
+  <rect x="748" y="75" width="450" height="255" rx="20" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="748" y="75" width="450" height="47" rx="20" fill="#f8fafc"/>
+  <path d="M748 105 H1198" stroke="#e2e8f0"/>
+  <circle cx="776" cy="99" r="6" fill="#bfdbfe"/>
+  <circle cx="796" cy="99" r="6" fill="#93c5fd"/>
+  <circle cx="816" cy="99" r="6" fill="#60a5fa"/>
+  <text x="844" y="104" fill="#475569" font-family="Arial,Segoe UI,sans-serif" font-size="13" font-weight="700">DOCUMENT FLOW</text>
+  <rect x="782" y="154" width="103" height="114" rx="12" fill="#eff6ff" stroke="#93c5fd"/>
+  <path d="M808 173 h35 l17 17 v49 h-52 z" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <path d="M843 173 v17 h17" fill="none" stroke="#2563eb" stroke-width="2"/>
+  <text x="812" y="218" fill="#1d4ed8" font-family="Arial,Segoe UI,sans-serif" font-size="16" font-weight="700">PDF</text>
+  <text x="806" y="253" fill="#475569" font-family="Arial,Segoe UI,sans-serif" font-size="11">UPLOAD</text>
+  <path d="M895 211 h40 m-10 -10 10 10 -10 10" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="945" y="154" width="91" height="114" rx="12" fill="#2563eb"/>
+  <circle cx="990" cy="190" r="15" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <path d="M980 190 h20 M990 180 v20" stroke="#ffffff" stroke-width="2"/>
+  <text x="964" y="236" fill="#ffffff" font-family="Arial,Segoe UI,sans-serif" font-size="11" font-weight="700">DOCLING</text>
+  <path d="M1046 211 h40 m-10 -10 10 10 -10 10" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="1096" y="154" width="70" height="52" rx="9" fill="#eff6ff" stroke="#93c5fd"/>
+  <rect x="1096" y="216" width="70" height="52" rx="9" fill="#eff6ff" stroke="#93c5fd"/>
+  <path d="M1110 173 h41 M1110 182 h32 M1110 235 h41 M1110 244 h28" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+  <text x="1109" y="292" fill="#475569" font-family="Arial,Segoe UI,sans-serif" font-size="11">PAGES 01–02</text>
+</svg>

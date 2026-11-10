@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    environment:
+      DOCURISK_API_KEY: ${DOCURISK_API_KEY:?Set DOCURISK_API_KEY in .env first}
+      DOCURISK_DATA_DIR: /app/data
+      HF_HOME: /app/data/model-cache
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - docurisk_data:/app/data
+    restart: unless-stopped
+volumes:
+  docurisk_data:
